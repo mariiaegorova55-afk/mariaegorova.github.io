@@ -83,7 +83,7 @@ button {
   flex: 1;
   margin: var(--pad);
   min-height: 0;
-  background: #fff;
+  background: transparent;
   overflow: hidden;
   position: relative;
   display: flex;
@@ -147,6 +147,10 @@ button {
   letter-spacing: 0.01em;
   line-height: 1;
   margin-left: 0.02em;
+}
+/* slight extra space between script E and "gorova" */
+.landing__name--right .landing__rest {
+  margin-left: 0.1em;
 }
 
 .landing__polaroid {
