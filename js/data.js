@@ -7,7 +7,7 @@ const IMG = (file) =>
   `images/portfolio/${encodeURIComponent(file).replace(/%2F/gi, "/")}`;
 
 window.PORTFOLIO = {
-  name: "maria egorova",
+  name: "mariia egorova",
   role: "multidisciplinary graphic designer",
   about:
     "designer working across editorial design, book arts, and visual storytelling. interested in how form holds memory — and how the page becomes a place where history and the present meet.",
