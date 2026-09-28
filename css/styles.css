@@ -149,6 +149,11 @@ button {
   margin-left: 0.02em;
 }
 
+/* small gap between the script E and "gorova" */
+.landing__name--right .landing__rest {
+  margin-left: 0.12em;
+}
+
 .landing__polaroid {
   margin: 0;
   width: min(22vw, 200px);
