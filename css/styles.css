@@ -310,9 +310,10 @@ button {
 /* ========== PROJECTS ========== */
 
 .project {
-  display: flex;
-  flex-direction: column;
-  gap: 0.9rem;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  column-gap: 0.85rem;
+  row-gap: 0.9rem;
   scroll-margin-top: 1.5rem;
 }
 
@@ -321,6 +322,7 @@ button {
 }
 
 .project__header {
+  grid-column: 1 / -1;
   display: flex;
   flex-wrap: wrap;
   align-items: baseline;
@@ -365,10 +367,7 @@ button {
 }
 
 .project__pair {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 0.85rem;
-  align-items: start;
+  display: contents;
 }
 
 .project__media {
@@ -403,11 +402,12 @@ button {
 }
 
 .project__summary {
+  grid-column: 1 / -1;
   margin: 0;
   font-size: 0.9rem;
   line-height: 1.55;
   color: var(--ink-soft);
-  max-width: 54ch;
+  max-width: none;
   font-weight: 300;
 }
 
@@ -658,11 +658,15 @@ body.lightbox-open {
     gap: 0.75rem 1.35rem;
   }
 
-  .project__pair,
+  .project,
   .detail__hero,
   .detail__gallery,
   .detail__body {
     grid-template-columns: 1fr;
+  }
+
+  .project__summary {
+    grid-column: 1 / -1;
   }
 
   .landing__compose {
