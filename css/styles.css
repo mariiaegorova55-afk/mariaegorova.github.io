@@ -83,7 +83,7 @@ button {
   flex: 1;
   margin: var(--pad);
   min-height: 0;
-  background: #fff;
+  background: var(--bg);
   overflow: hidden;
   position: relative;
   display: flex;
