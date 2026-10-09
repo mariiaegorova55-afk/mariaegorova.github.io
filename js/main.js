@@ -52,21 +52,113 @@
   }
 
   function startMotions() {
+    var reduce =
+      window.matchMedia &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     var frames = document.querySelectorAll("[data-motion]");
+
+    function frameSrc(img) {
+      return img.getAttribute("data-src") || img.getAttribute("src");
+    }
+
+    function ensureSrc(img) {
+      if (img.getAttribute("src")) return;
+      var data = img.getAttribute("data-src");
+      if (data) img.setAttribute("src", data);
+    }
+
+    /* Decode off the main thread before the frame is shown, so a swap
+       never reveals an empty image. */
+    function whenReady(img) {
+      ensureSrc(img);
+      if (!img.getAttribute("src")) return Promise.reject();
+      if (typeof img.decode === "function") return img.decode();
+      if (img.complete && img.naturalWidth) return Promise.resolve();
+      return new Promise(function (resolve, reject) {
+        img.addEventListener("load", function () { resolve(); }, { once: true });
+        img.addEventListener("error", function () { reject(); }, { once: true });
+      });
+    }
+
     for (var f = 0; f < frames.length; f++) {
       (function (frame) {
         var imgs = frame.querySelectorAll("img");
         if (imgs.length < 2) return;
         var i = 0;
+        var running = false;
+        var timer = null;
+
         for (var j = 0; j < imgs.length; j++) {
           if (j === 0) imgs[j].classList.add("is-active");
           else imgs[j].classList.remove("is-active");
+          if (!imgs[j].getAttribute("src")) {
+            var parked = frameSrc(imgs[j]);
+            if (parked) imgs[j].setAttribute("data-src", parked);
+          }
         }
-        setInterval(function () {
-          imgs[i].classList.remove("is-active");
-          i = (i + 1) % imgs.length;
-          imgs[i].classList.add("is-active");
-        }, MOTION_MS);
+
+        function warm(index) {
+          var img = imgs[index];
+          ensureSrc(img);
+          if (typeof img.decode === "function") img.decode().catch(function () {});
+        }
+
+        function arm() {
+          if (timer || !running) return;
+          timer = setTimeout(function () {
+            timer = null;
+            showNext(0);
+          }, MOTION_MS);
+        }
+
+        function showNext(tries) {
+          if (!running) return;
+          if (tries >= imgs.length - 1) return;
+          var next = (i + 1 + tries) % imgs.length;
+          whenReady(imgs[next]).then(
+            function () {
+              if (!running) return;
+              imgs[i].classList.remove("is-active");
+              i = next;
+              imgs[i].classList.add("is-active");
+              warm((i + 1) % imgs.length);
+              arm();
+            },
+            function () {
+              showNext(tries + 1);
+            }
+          );
+        }
+
+        function start() {
+          if (running || reduce) return;
+          running = true;
+          warm((i + 1) % imgs.length);
+          arm();
+        }
+
+        function stop() {
+          running = false;
+          if (timer) {
+            clearTimeout(timer);
+            timer = null;
+          }
+        }
+
+        if ("IntersectionObserver" in window) {
+          var io = new IntersectionObserver(
+            function (entries) {
+              for (var e = 0; e < entries.length; e++) {
+                if (entries[e].isIntersecting) start();
+                else stop();
+              }
+            },
+            { rootMargin: "400px 0px" }
+          );
+          io.observe(frame);
+        } else {
+          start();
+        }
       })(frames[f]);
     }
   }
