@@ -67,17 +67,11 @@
       if (data) img.setAttribute("src", data);
     }
 
-    /* Decode off the main thread before the frame is shown, so a swap
-       never reveals an empty image. */
-    function whenReady(img) {
-      ensureSrc(img);
-      if (!img.getAttribute("src")) return Promise.reject();
-      if (typeof img.decode === "function") return img.decode();
-      if (img.complete && img.naturalWidth) return Promise.resolve();
-      return new Promise(function (resolve, reject) {
-        img.addEventListener("load", function () { resolve(); }, { once: true });
-        img.addEventListener("error", function () { reject(); }, { once: true });
-      });
+    /* Opacity 0 stalls decoding in some browsers, so a waiting frame sits
+       underneath the current one instead of being hidden. */
+    function place(img, opacity, z) {
+      img.style.opacity = opacity;
+      img.style.zIndex = String(z);
     }
 
     for (var f = 0; f < frames.length; f++) {
@@ -89,18 +83,41 @@
         var timer = null;
 
         for (var j = 0; j < imgs.length; j++) {
-          if (j === 0) imgs[j].classList.add("is-active");
-          else imgs[j].classList.remove("is-active");
+          if (j === 0) {
+            imgs[j].classList.add("is-active");
+            place(imgs[j], "1", 1);
+          } else {
+            imgs[j].classList.remove("is-active");
+            place(imgs[j], "0", 0);
+          }
           if (!imgs[j].getAttribute("src")) {
             var parked = frameSrc(imgs[j]);
             if (parked) imgs[j].setAttribute("data-src", parked);
           }
         }
 
+        function whenReady(img) {
+          ensureSrc(img);
+          if (!img.getAttribute("src")) return Promise.reject();
+          if (img !== imgs[i]) place(img, "1", 0);
+          return new Promise(function (resolve, reject) {
+            function finish() {
+              if (img.naturalWidth > 0) resolve();
+              else reject();
+            }
+            if (img.complete) {
+              finish();
+              return;
+            }
+            img.addEventListener("load", finish, { once: true });
+            img.addEventListener("error", function () { reject(); }, { once: true });
+          });
+        }
+
         function warm(index) {
           var img = imgs[index];
           ensureSrc(img);
-          if (typeof img.decode === "function") img.decode().catch(function () {});
+          if (img !== imgs[i]) place(img, "1", 0);
         }
 
         function arm() {
@@ -118,13 +135,22 @@
           whenReady(imgs[next]).then(
             function () {
               if (!running) return;
-              imgs[i].classList.remove("is-active");
-              i = next;
-              imgs[i].classList.add("is-active");
-              warm((i + 1) % imgs.length);
-              arm();
+              var prev = i;
+              place(imgs[next], "1", 2);
+              requestAnimationFrame(function () {
+                requestAnimationFrame(function () {
+                  if (!running) return;
+                  place(imgs[prev], "0", 0);
+                  imgs[prev].classList.remove("is-active");
+                  i = next;
+                  imgs[i].classList.add("is-active");
+                  warm((i + 1) % imgs.length);
+                  arm();
+                });
+              });
             },
             function () {
+              place(imgs[next], "0", 0);
               showNext(tries + 1);
             }
           );
